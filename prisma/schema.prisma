@@ -1,0 +1,196 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(uuid())
+  email      String   @unique
+  name       String
+  password   String
+  username   String?  @unique
+  profileImg String?
+  isDeleted  Boolean  @default(false)
+  deletedAt  DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  stations           Station[]           @relation("StationOwner")
+  voiceSubscriptions VoiceSubscription[] @relation("VoiceSubscriptions")
+  voiceComments      VoiceComment[]      @relation("VoiceComments")
+  voicePlaylists     VoicePlaylist[]       @relation("VoicePlaylists")
+  fcmTokens          FcmToken[]
+  notifications      Notification[]      @relation("Receiver")
+  sentNotifications  Notification[]      @relation("Sender")
+  reportsFiled       Report[]            @relation("ReportsFiled")
+
+  @@index([isDeleted])
+}
+
+model VoiceCategory {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  icon        String?
+  description String?
+  createdAt   DateTime  @default(now())
+  stations    Station[]
+}
+
+model Station {
+  id              String         @id @default(uuid())
+  userId          String
+  user            User           @relation("StationOwner", fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  handle          String         @unique
+  description     String?
+  avatarURL       String?
+  bannerURL       String?
+  categoryId      String?
+  category        VoiceCategory? @relation(fields: [categoryId], references: [id])
+  subscriberCount Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  posts         VoicePost[]
+  subscriptions VoiceSubscription[]
+
+  @@index([userId])
+  @@index([categoryId])
+  @@index([handle])
+}
+
+model VoiceSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation("VoiceSubscriptions", fields: [userId], references: [id], onDelete: Cascade)
+  stationId String
+  station   Station  @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, stationId])
+  @@index([userId])
+  @@index([stationId])
+}
+
+model VoicePost {
+  id           String   @id @default(uuid())
+  stationId    String
+  station      Station  @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  title        String
+  description  String?  @db.Text
+  thumbnailURL String
+  audioURL     String
+  duration     Int
+  likes        String[] @default([])
+  viewCount    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  comments VoiceComment[]
+
+  @@index([stationId])
+  @@index([createdAt])
+}
+
+model VoiceComment {
+  id           String        @id @default(uuid())
+  postId       String
+  post         VoicePost     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId     String
+  author       User          @relation("VoiceComments", fields: [authorId], references: [id], onDelete: Cascade)
+  content      String        @db.Text
+  audioFileURL String?
+  parentId     String?
+  parent       VoiceComment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies      VoiceComment[] @relation("CommentReplies")
+  likes        String[]      @default([])
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([postId])
+  @@index([authorId])
+  @@index([parentId])
+}
+
+model VoicePlaylist {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation("VoicePlaylists", fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items VoicePlaylistItem[]
+
+  @@index([userId])
+}
+
+model VoicePlaylistItem {
+  id         String        @id @default(uuid())
+  playlistId String
+  playlist   VoicePlaylist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  postId     String
+  position   Int
+  addedAt    DateTime      @default(now())
+
+  @@unique([playlistId, postId])
+  @@index([playlistId])
+}
+
+model Notification {
+  id         String   @id @default(uuid())
+  createdAt  DateTime @default(now())
+  senderName String
+  senderId   String
+  receiverId String
+  type       String
+  content    String
+  read       Boolean  @default(false)
+  sender     User     @relation("Sender", fields: [senderId], references: [id])
+  receiver   User     @relation("Receiver", fields: [receiverId], references: [id])
+}
+
+model FcmToken {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token      String   @unique
+  deviceType String
+  deviceInfo Json?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  lastUsedAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([deviceType])
+  @@index([isActive])
+}
+
+model Report {
+  id          String   @id @default(uuid())
+  targetType  String
+  targetId    String
+  reporterId  String
+  reporter    User     @relation("ReportsFiled", fields: [reporterId], references: [id], onDelete: Cascade)
+  reason      String
+  description String?  @db.Text
+  status      String   @default("pending")
+  resolution  String?  @db.Text
+  resolvedAt  DateTime?
+  resolvedBy  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([reporterId, targetType, targetId])
+  @@index([status])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+}
