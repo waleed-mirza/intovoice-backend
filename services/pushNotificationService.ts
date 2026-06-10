@@ -57,7 +57,7 @@ export async function sendPushNotification(
       notification: { title: notification.title, body: notification.body },
       data: messageData,
       webpush: {
-        notification: { icon: "/intoVoice.png", badge: "/intoVoice.png" },
+        notification: { icon: "/intovoice_logo.png", badge: "/intovoice_logo.png" },
       },
     });
 
