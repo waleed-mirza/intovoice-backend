@@ -160,7 +160,8 @@ router.post("/post/:postId", async (req: any, res: any) => {
       return res.status(404).json({ message: "Post not found" });
     }
 
-    // If replying, verify parent comment exists
+    // If replying, verify parent comment exists and flatten to thread root
+    let threadRootId: string | null = null;
     if (parentId) {
       const parentComment = await req.prisma.voiceComment.findUnique({
         where: { id: parentId },
@@ -173,6 +174,9 @@ router.post("/post/:postId", async (req: any, res: any) => {
       if (parentComment.postId !== postId) {
         return res.status(400).json({ message: "Parent comment belongs to different post" });
       }
+
+      threadRootId =
+        parentComment.parentId === null ? parentComment.id : parentComment.parentId;
     }
 
     const comment = await req.prisma.voiceComment.create({
@@ -181,7 +185,7 @@ router.post("/post/:postId", async (req: any, res: any) => {
         authorId: userId,
         content: preparedContent.storedText,
         audioFileURL: audioFileURL || null,
-        parentId: parentId || null,
+        parentId: threadRootId,
       },
       include: {
         author: {
