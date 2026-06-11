@@ -7,6 +7,7 @@ import commentRouter from "./comment";
 import feedRouter from "./feed";
 import categoryRouter from "./category";
 import uploadRouter from "./upload";
+import liveRouter from "./live";
 
 const router = Router();
 
@@ -27,6 +28,9 @@ const optionalAuth = (req: any, res: any, next: any) => {
 
 // Upload routes - protected (need auth to upload)
 router.use("/upload", verifyToken, uploadRouter);
+
+// Live stream routes — all require auth (/active and /my-active before /:id in live.ts)
+router.use("/live", verifyToken, liveRouter);
 
 // Feed routes — subscriptions requires auth; others optional
 router.get("/feed/subscriptions", verifyToken, feedRouter);

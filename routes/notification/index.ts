@@ -8,6 +8,7 @@ const VOICE_NOTIFICATION_TYPES = [
   "voice_new_post",
   "voice_like",
   "voice_comment",
+  "voice_live",
 ];
 
 export const createNotification = async (

@@ -27,6 +27,7 @@ model User {
   notifications      Notification[]      @relation("Receiver")
   sentNotifications  Notification[]      @relation("Sender")
   reportsFiled       Report[]            @relation("ReportsFiled")
+  liveStreams        LiveStream[]        @relation("LiveStreams")
 
   @@index([isDeleted])
 }
@@ -58,6 +59,7 @@ model Station {
 
   posts         VoicePost[]
   subscriptions VoiceSubscription[]
+  liveStreams   LiveStream[]
 
   @@index([userId])
   @@index([categoryId])
@@ -172,6 +174,24 @@ model FcmToken {
   @@index([userId])
   @@index([deviceType])
   @@index([isActive])
+}
+
+model LiveStream {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation("LiveStreams", fields: [userId], references: [id], onDelete: Cascade)
+  stationId   String?
+  station     Station?  @relation(fields: [stationId], references: [id], onDelete: SetNull)
+  title       String
+  description String?   @db.Text
+  roomId      String    @unique
+  streamId    String    @unique
+  status      String    @default("live")
+  startedAt   DateTime  @default(now())
+  endedAt     DateTime?
+
+  @@index([status, startedAt])
+  @@index([userId, status])
 }
 
 model Report {
