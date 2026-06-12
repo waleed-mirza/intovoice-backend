@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { deleteObject } from "../../middlewares/AWSConfig";
+import { deleteCommentTreeS3Assets } from "../../services/s3Cleanup";
 import { createNotification } from "../notification";
 import { notifyVoiceComment } from "../../services/pushNotificationService";
 import {
@@ -314,28 +314,9 @@ router.delete("/:id", async (req: any, res: any) => {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    // Delete S3 audio asset if the comment has one
-    if (comment.audioFileURL) {
-      try {
-        await deleteObject(comment.audioFileURL);
-      } catch (e) {
-        console.log("Failed to delete voice comment S3 asset:", e);
-      }
-    }
+    await deleteCommentTreeS3Assets(req.prisma, id, comment.audioFileURL);
 
-    // Collect and delete S3 audio for all descendant replies (DB cascade won't clean S3)
-    const replies = await req.prisma.voiceComment.findMany({
-      where: { parentId: id, audioFileURL: { not: null } },
-      select: { audioFileURL: true },
-    });
-    await Promise.all(
-      replies.map(async (r: { audioFileURL: string | null }) => {
-        if (r.audioFileURL) {
-          try { await deleteObject(r.audioFileURL); } catch (e) {}
-        }
-      })
-    );
-
+    // DB cascade deletes direct replies when removing a top-level comment
     await req.prisma.voiceComment.delete({
       where: { id },
     });

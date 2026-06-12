@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { deleteObject } from "../../middlewares/AWSConfig";
+import { deleteStationS3Assets } from "../../services/s3Cleanup";
 import { createNotification } from "../notification";
 import { notifyVoiceSubscription } from "../../services/pushNotificationService";
 
@@ -317,27 +318,7 @@ router.delete("/:id", async (req: any, res: any) => {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    // Delete all associated S3 files (station assets, post assets, comment audio)
-    if (station.avatarURL) {
-      try { await deleteObject(station.avatarURL); } catch (e) {}
-    }
-    if (station.bannerURL) {
-      try { await deleteObject(station.bannerURL); } catch (e) {}
-    }
-    for (const post of station.posts) {
-      if (post.thumbnailURL) {
-        try { await deleteObject(post.thumbnailURL); } catch (e) {}
-      }
-      if (post.audioURL) {
-        try { await deleteObject(post.audioURL); } catch (e) {}
-      }
-      // Clean up voice comment audio files for each post
-      for (const comment of post.comments) {
-        if (comment.audioFileURL) {
-          try { await deleteObject(comment.audioFileURL); } catch (e) {}
-        }
-      }
-    }
+    await deleteStationS3Assets(req.prisma, station);
 
     await req.prisma.station.delete({
       where: { id },

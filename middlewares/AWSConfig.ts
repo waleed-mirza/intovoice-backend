@@ -28,8 +28,20 @@ export const resolveS3Key = (value: string): string => {
   if (!value) return value;
   try {
     const url = new URL(value);
-    // It's a valid URL — strip the leading slash from pathname to get the key
-    return url.pathname.replace(/^\//, "");
+    const bucket = process.env.AWS_BUCKET_NAME?.trim();
+    let path = url.pathname.replace(/^\//, "");
+
+    // Path-style: https://s3.region.amazonaws.com/bucket/key
+    if (bucket && path.startsWith(`${bucket}/`)) {
+      return path.slice(bucket.length + 1);
+    }
+
+    // Virtual-hosted: https://bucket.s3.region.amazonaws.com/key
+    if (bucket && url.hostname.startsWith(`${bucket}.`)) {
+      return path;
+    }
+
+    return path;
   } catch {
     // Not a URL — already a bare key
     return value;

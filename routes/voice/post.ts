@@ -1,11 +1,12 @@
 import { Router } from "express";
 import { deleteObject } from "../../middlewares/AWSConfig";
+import { deletePostS3Assets } from "../../services/s3Cleanup";
 import { createNotification } from "../notification";
 import { notifyVoiceNewPost, notifyVoicePostLike } from "../../services/pushNotificationService";
 
 const router = Router();
 
-const MAX_DURATION_SECONDS = 3600; // 1 hour
+const MAX_DURATION_SECONDS = 29 * 60; // 29 minutes
 
 
 // Helper to notify all subscribers of a new post
@@ -255,31 +256,9 @@ router.delete("/:id", async (req: any, res: any) => {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    // Collect all voice comment audio files before deleting
-    const commentAudios = await req.prisma.voiceComment.findMany({
-      where: { postId: id, audioFileURL: { not: null } },
-      select: { audioFileURL: true },
-    });
+    await deletePostS3Assets(req.prisma, post);
 
-    // Delete post media files from S3
-    if (post.thumbnailURL) {
-      try { await deleteObject(post.thumbnailURL); } catch (e) {}
-    }
-    if (post.audioURL) {
-      try { await deleteObject(post.audioURL); } catch (e) {}
-    }
-
-    // Delete voice comment audio files from S3 (cascade cleanup)
-    const commentAudioKeys = commentAudios
-      .map((c: { audioFileURL: string | null }) => c.audioFileURL)
-      .filter(Boolean) as string[];
-    await Promise.all(
-      commentAudioKeys.map(async (key) => {
-        try { await deleteObject(key); } catch (e) {}
-      })
-    );
-
-    // Cascade delete post (comments deleted via DB onDelete: Cascade)
+    // Cascade delete post (comments removed via DB onDelete: Cascade)
     await req.prisma.voicePost.delete({
       where: { id },
     });

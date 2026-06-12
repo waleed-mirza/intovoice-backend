@@ -7,6 +7,8 @@ import notificationRouter from "./routes/notification";
 import reportRouter from "./routes/report";
 import verifyToken from "./middlewares/verifyToken";
 import app from "./middlewares/appServer";
+import prisma from "./middlewares/prismaClient";
+import { cleanupStaleLiveStreams } from "./services/cleanupStaleLiveStreams";
 
 dotenv.config();
 
@@ -58,4 +60,14 @@ app.get("/health", (_req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Into Voice backend running on port ${PORT}`);
+
+  cleanupStaleLiveStreams(prisma)
+    .then((count) => {
+      if (count > 0) {
+        console.log(`Cleaned up ${count} stale live stream(s)`);
+      }
+    })
+    .catch((error) => {
+      console.error("Startup stale live cleanup failed:", error.message);
+    });
 });

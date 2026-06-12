@@ -186,12 +186,14 @@ model LiveStream {
   description String?   @db.Text
   roomId      String    @unique
   streamId    String    @unique
-  status      String    @default("live")
-  startedAt   DateTime  @default(now())
-  endedAt     DateTime?
+  status          String    @default("live")
+  startedAt       DateTime  @default(now())
+  endedAt         DateTime?
+  lastHeartbeatAt DateTime?
 
   @@index([status, startedAt])
   @@index([userId, status])
+  @@index([status, lastHeartbeatAt])
 }
 
 model Report {

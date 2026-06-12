@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { createNotification } from "../notification";
+import { cleanupStaleLiveStreams } from "../../services/cleanupStaleLiveStreams";
 import { generateLiveToken } from "../../services/zegoToken";
 
 const router = Router();
@@ -70,9 +71,19 @@ const notifyStationSubscribers = async (
   );
 };
 
+const runStaleCleanup = async (prisma: any) => {
+  try {
+    await cleanupStaleLiveStreams(prisma);
+  } catch (error: any) {
+    console.log("Stale live cleanup failed:", error.message);
+  }
+};
+
 // GET /voice/live/active
 router.get("/active", async (req: any, res: any) => {
   try {
+    await runStaleCleanup(req.prisma);
+
     const { page = 1, limit = 20 } = req.query;
     const pageNum = parseInt(page as string, 10) || 1;
     const limitNum = Math.min(parseInt(limit as string, 10) || 20, 50);
@@ -107,6 +118,8 @@ router.get("/active", async (req: any, res: any) => {
 // GET /voice/live/my-active
 router.get("/my-active", async (req: any, res: any) => {
   try {
+    await runStaleCleanup(req.prisma);
+
     const stream = await req.prisma.liveStream.findFirst({
       where: { userId: req.userId, status: "live" },
       include: liveInclude,
@@ -122,6 +135,8 @@ router.get("/my-active", async (req: any, res: any) => {
 // GET /voice/live/:id/token?role=host|audience
 router.get("/:id/token", async (req: any, res: any) => {
   try {
+    await runStaleCleanup(req.prisma);
+
     const role = (req.query.role as string) || "audience";
     if (role !== "host" && role !== "audience") {
       return res.status(400).json({ message: "role must be host or audience" });
@@ -162,6 +177,8 @@ router.get("/:id/token", async (req: any, res: any) => {
 // GET /voice/live/:id
 router.get("/:id", async (req: any, res: any) => {
   try {
+    await runStaleCleanup(req.prisma);
+
     const stream = await req.prisma.liveStream.findUnique({
       where: { id: req.params.id },
       include: liveInclude,
@@ -224,6 +241,7 @@ router.post("/start", async (req: any, res: any) => {
         roomId: "pending",
         streamId: "pending",
         status: "live",
+        lastHeartbeatAt: new Date(),
       },
     });
 
@@ -249,6 +267,95 @@ router.post("/start", async (req: any, res: any) => {
     );
 
     res.status(201).json({ result: formatLiveStream(liveStream) });
+  } catch (error: any) {
+    console.log(error.message);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// POST /voice/live/:id/listener-profiles — host batch lookup for listener avatars
+router.post("/:id/listener-profiles", async (req: any, res: any) => {
+  try {
+    const { userIds } = req.body;
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(200).json({ result: [] });
+    }
+
+    const stream = await req.prisma.liveStream.findUnique({
+      where: { id: req.params.id },
+    });
+
+    if (!stream) {
+      return res.status(404).json({ message: "Live stream not found" });
+    }
+
+    if (stream.userId !== req.userId) {
+      return res.status(403).json({ message: "Only the host can view listener profiles" });
+    }
+
+    if (stream.status !== "live") {
+      return res.status(410).json({ message: "This broadcast has ended" });
+    }
+
+    const ids = [
+      ...new Set(
+        userIds.filter(
+          (id: unknown): id is string =>
+            typeof id === "string" && id.trim().length > 0 && id !== stream.userId
+        )
+      ),
+    ].slice(0, 50);
+
+    if (ids.length === 0) {
+      return res.status(200).json({ result: [] });
+    }
+
+    const users = await req.prisma.user.findMany({
+      where: {
+        id: { in: ids },
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        profileImg: true,
+      },
+    });
+
+    res.status(200).json({ result: users });
+  } catch (error: any) {
+    console.log(error.message);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// POST /voice/live/:id/heartbeat — host keeps broadcast alive on the server
+router.post("/:id/heartbeat", async (req: any, res: any) => {
+  try {
+    const stream = await req.prisma.liveStream.findUnique({
+      where: { id: req.params.id },
+    });
+
+    if (!stream) {
+      return res.status(404).json({ message: "Live stream not found" });
+    }
+
+    if (stream.userId !== req.userId) {
+      return res.status(403).json({ message: "Only the host can send heartbeats" });
+    }
+
+    if (stream.status !== "live") {
+      return res.status(410).json({ message: "This broadcast has ended" });
+    }
+
+    const updated = await req.prisma.liveStream.update({
+      where: { id: stream.id },
+      data: { lastHeartbeatAt: new Date() },
+      include: liveInclude,
+    });
+
+    res.status(200).json({ result: formatLiveStream(updated) });
   } catch (error: any) {
     console.log(error.message);
     res.status(500).json({ message: error.message });
