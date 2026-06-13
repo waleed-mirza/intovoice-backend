@@ -38,6 +38,23 @@ export async function deleteCommentTreeS3Assets(
   ]);
 }
 
+/** Delete tape thumbnail, audio, and all comment audio for a tape. */
+export async function deleteTapeS3Assets(
+  prisma: PrismaClient,
+  tape: { id: string; thumbnailURL?: string | null; audioURL?: string | null }
+): Promise<void> {
+  const commentAudios = await prisma.voiceComment.findMany({
+    where: { tapeId: tape.id, audioFileURL: { not: null } },
+    select: { audioFileURL: true },
+  });
+
+  await deleteS3Assets([
+    tape.thumbnailURL,
+    tape.audioURL,
+    ...commentAudios.map((c) => c.audioFileURL),
+  ]);
+}
+
 /** Delete post thumbnail, audio, and all comment audio for a voice post. */
 export async function deletePostS3Assets(
   prisma: PrismaClient,

@@ -8,6 +8,8 @@ import feedRouter from "./feed";
 import categoryRouter from "./category";
 import uploadRouter from "./upload";
 import liveRouter from "./live";
+import tapeRouter from "./tape";
+import userRouter from "./user";
 
 const router = Router();
 
@@ -64,5 +66,11 @@ router.get("/comment/:commentId/replies", optionalAuth, commentRouter);
 
 // Protected comment routes
 router.use("/comment", verifyToken, commentRouter);
+
+// Tape routes — optional auth on reads; writes use verifyToken inside tape.ts
+router.use("/tape", optionalAuth, tapeRouter);
+
+// Public user profiles — must be before /station mounts
+router.use("/user", optionalAuth, userRouter);
 
 export default router;

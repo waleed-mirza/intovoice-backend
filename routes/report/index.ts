@@ -4,7 +4,7 @@ import { reportLimiter } from "../../middlewares/rateLimiter";
 
 const router = Router();
 
-export const REPORT_TARGET_TYPES = ["voice_post", "voice_comment"] as const;
+export const REPORT_TARGET_TYPES = ["voice_post", "voice_comment", "voice_tape"] as const;
 type ReportTargetType = (typeof REPORT_TARGET_TYPES)[number];
 
 export const REPORT_REASONS = [
@@ -39,6 +39,13 @@ async function loadTarget(
       select: { authorId: true },
     });
     return row ? { exists: true, authorId: row.authorId } : { exists: false };
+  }
+  if (targetType === "voice_tape") {
+    const row = await prisma.tape.findUnique({
+      where: { id: targetId },
+      select: { userId: true },
+    });
+    return row ? { exists: true, authorId: row.userId } : { exists: false };
   }
   return { exists: false };
 }

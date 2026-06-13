@@ -232,8 +232,10 @@ router.get("/search", async (req: any, res: any) => {
 
     let posts: any[] = [];
     let stations: any[] = [];
+    let tapes: any[] = [];
     let totalPosts = 0;
     let totalStations = 0;
+    let totalTapes = 0;
 
     if (searchType === "all" || searchType === "posts") {
       totalPosts = await req.prisma.voicePost.count({
@@ -294,20 +296,53 @@ router.get("/search", async (req: any, res: any) => {
       });
     }
 
+    if (searchType === "all" || searchType === "tapes") {
+      totalTapes = await req.prisma.tape.count({
+        where: {
+          caption: { contains: searchQuery, mode: "insensitive" },
+        },
+      });
+
+      tapes = await req.prisma.tape.findMany({
+        where: {
+          caption: { contains: searchQuery, mode: "insensitive" },
+        },
+        skip: searchType === "tapes" ? skip : 0,
+        take: searchType === "tapes" ? limitNum : 5,
+        orderBy: { createdAt: "desc" },
+        include: {
+          user: {
+            select: { id: true, name: true, profileImg: true, username: true },
+          },
+          station: {
+            select: { id: true, name: true, handle: true, avatarURL: true },
+          },
+        },
+      });
+    }
+
     const postsWithCounts = posts.map((post: any) => ({
       ...post,
       likeCount: post.likes.length,
     }));
 
+    const tapesWithCounts = tapes.map((tape: any) => ({
+      ...tape,
+      likeCount: tape.likes.length,
+    }));
+
     res.status(200).json({
       posts: postsWithCounts,
       stations,
+      tapes: tapesWithCounts,
       pagination: {
         currentPage: pageNum,
         totalPosts,
         totalStations,
+        totalTapes,
         hasMorePosts: searchType === "posts" ? skip + limitNum < totalPosts : totalPosts > 5,
         hasMoreStations: searchType === "stations" ? skip + limitNum < totalStations : totalStations > 5,
+        hasMoreTapes: searchType === "tapes" ? skip + limitNum < totalTapes : totalTapes > 5,
       },
     });
   } catch (error: any) {

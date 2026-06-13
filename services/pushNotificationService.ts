@@ -160,3 +160,62 @@ export async function notifyVoiceComment(
     senderId: commenterUserId,
   });
 }
+
+export async function notifyVoiceTapeNew(
+  prisma: PrismaClient,
+  subscriberId: string,
+  stationId: string,
+  stationName: string,
+  tapeId: string,
+  caption: string
+) {
+  const truncated =
+    caption.length > 40 ? `${caption.substring(0, 40)}...` : caption;
+
+  await sendPushNotification(prisma, subscriberId, {
+    title: stationName,
+    body: `New tape: ${truncated}`,
+    type: "voice_tape_new",
+    contentId: tapeId,
+    senderId: stationId,
+  });
+}
+
+export async function notifyVoiceTapeLike(
+  prisma: PrismaClient,
+  tapeOwnerId: string,
+  likerUserId: string,
+  likerName: string,
+  tapeId: string,
+  caption: string
+) {
+  const truncated =
+    caption.length > 30 ? `${caption.substring(0, 30)}...` : caption;
+
+  await sendPushNotification(prisma, tapeOwnerId, {
+    title: "New Like",
+    body: `${likerName} liked "${truncated}"`,
+    type: "voice_tape_like",
+    contentId: tapeId,
+    senderId: likerUserId,
+  });
+}
+
+export async function notifyVoiceTapeComment(
+  prisma: PrismaClient,
+  tapeOwnerId: string,
+  commenterUserId: string,
+  commenterName: string,
+  tapeId: string,
+  commentText: string
+) {
+  const truncatedComment = formatPreviewText(commentText);
+
+  await sendPushNotification(prisma, tapeOwnerId, {
+    title: "New Comment",
+    body: `${commenterName}: ${truncatedComment}`,
+    type: "voice_tape_comment",
+    contentId: tapeId,
+    senderId: commenterUserId,
+  });
+}

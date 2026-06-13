@@ -18,6 +18,7 @@ export const UpdateProfileSchema = Joi.object({
     .pattern(/^[a-z0-9_-]+$/)
     .allow(null, ""),
   profileImg: Joi.string().max(500).allow(null, ""),
+  bannerImg: Joi.string().max(500).allow(null, ""),
 }).min(1);
 
 export const UpdateEmailSchema = Joi.object({

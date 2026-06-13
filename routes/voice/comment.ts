@@ -299,6 +299,9 @@ router.delete("/:id", async (req: any, res: any) => {
         post: {
           include: { station: true },
         },
+        tape: {
+          select: { userId: true },
+        },
       },
     });
 
@@ -306,11 +309,11 @@ router.delete("/:id", async (req: any, res: any) => {
       return res.status(404).json({ message: "Comment not found" });
     }
 
-    // Allow deletion by comment author or station owner (post owner)
     const isAuthor = comment.authorId === userId;
-    const isStationOwner = comment.post.station.userId === userId;
+    const isPostStationOwner = comment.post?.station?.userId === userId;
+    const isTapeOwner = comment.tape?.userId === userId;
 
-    if (!isAuthor && !isStationOwner) {
+    if (!isAuthor && !isPostStationOwner && !isTapeOwner) {
       return res.status(403).json({ message: "Not authorized" });
     }
 

@@ -14,6 +14,7 @@ model User {
   password   String
   username   String?  @unique
   profileImg String?
+  bannerImg  String?
   isDeleted  Boolean  @default(false)
   deletedAt  DateTime?
   createdAt  DateTime @default(now())
@@ -28,6 +29,7 @@ model User {
   sentNotifications  Notification[]      @relation("Sender")
   reportsFiled       Report[]            @relation("ReportsFiled")
   liveStreams        LiveStream[]        @relation("LiveStreams")
+  tapes              Tape[]              @relation("Tapes")
 
   @@index([isDeleted])
 }
@@ -60,6 +62,7 @@ model Station {
   posts         VoicePost[]
   subscriptions VoiceSubscription[]
   liveStreams   LiveStream[]
+  tapes         Tape[]
 
   @@index([userId])
   @@index([categoryId])
@@ -99,10 +102,34 @@ model VoicePost {
   @@index([createdAt])
 }
 
+model Tape {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation("Tapes", fields: [userId], references: [id], onDelete: Cascade)
+  stationId    String?
+  station      Station? @relation(fields: [stationId], references: [id], onDelete: SetNull)
+  caption      String   @db.Text
+  thumbnailURL String
+  audioURL     String
+  duration     Int
+  likes        String[] @default([])
+  viewCount    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  comments VoiceComment[]
+
+  @@index([userId])
+  @@index([stationId])
+  @@index([createdAt])
+}
+
 model VoiceComment {
   id           String        @id @default(uuid())
-  postId       String
-  post         VoicePost     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId       String?
+  post         VoicePost?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tapeId       String?
+  tape         Tape?         @relation(fields: [tapeId], references: [id], onDelete: Cascade)
   authorId     String
   author       User          @relation("VoiceComments", fields: [authorId], references: [id], onDelete: Cascade)
   content      String        @db.Text
@@ -115,6 +142,7 @@ model VoiceComment {
   updatedAt    DateTime      @updatedAt
 
   @@index([postId])
+  @@index([tapeId])
   @@index([authorId])
   @@index([parentId])
 }

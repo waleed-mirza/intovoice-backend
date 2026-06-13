@@ -9,6 +9,9 @@ const VOICE_NOTIFICATION_TYPES = [
   "voice_like",
   "voice_comment",
   "voice_live",
+  "voice_tape_new",
+  "voice_tape_like",
+  "voice_tape_comment",
 ];
 
 export const createNotification = async (

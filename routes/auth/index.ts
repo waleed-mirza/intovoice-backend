@@ -126,7 +126,7 @@ router.patch(
   async (req: any, res: any) => {
     try {
       const userId = req.userId;
-      const { name, username, profileImg } = req.body;
+      const { name, username, profileImg, bannerImg } = req.body;
 
       const user = await req.prisma.user.findUnique({ where: { id: userId } });
       if (!user || user.isDeleted) {
@@ -159,6 +159,14 @@ router.patch(
         }
       }
 
+      if (bannerImg && user.bannerImg && user.bannerImg !== bannerImg) {
+        try {
+          await deleteObject(user.bannerImg);
+        } catch (e) {
+          console.log("Error deleting old banner image:", e);
+        }
+      }
+
       const updatedUser = await req.prisma.user.update({
         where: { id: userId },
         data: {
@@ -167,6 +175,7 @@ router.patch(
             ? { username: username === "" || username === null ? null : username.toLowerCase() }
             : {}),
           ...(profileImg !== undefined ? { profileImg: profileImg || null } : {}),
+          ...(bannerImg !== undefined ? { bannerImg: bannerImg || null } : {}),
         },
       });
 
