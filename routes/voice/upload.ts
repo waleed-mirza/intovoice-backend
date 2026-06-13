@@ -34,19 +34,32 @@ router.get("/signed-url", async (req: any, res: any) => {
     const baseFileType = (fileType as string).split(";")[0].trim();
 
     const allowedThumbnailTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-    const allowedAudioTypes = ["audio/mpeg", "audio/mp4", "audio/wav", "audio/ogg", "audio/m4a", "audio/x-m4a", "audio/webm"];
+    const allowedAudioTypes = [
+      "audio/mpeg",
+      "audio/mp4",
+      "audio/wav",
+      "audio/x-wav",
+      "audio/wave",
+      "audio/ogg",
+      "audio/m4a",
+      "audio/x-m4a",
+      "audio/webm",
+      "audio/aac",
+      "audio/flac",
+      "audio/x-flac",
+    ];
     const allowedImageTypes = [...allowedThumbnailTypes];
 
     if (uploadType === "thumbnail" || uploadType === "avatar" || uploadType === "banner") {
       if (!allowedImageTypes.includes(baseFileType)) {
-        return res.status(400).json({ 
-          message: "Invalid image type. Allowed: JPEG, PNG, WebP, GIF" 
+        return res.status(400).json({
+          message: "Invalid image type. Allowed: JPEG, PNG, WebP, GIF",
         });
       }
     } else if (uploadType === "audio" || uploadType === "voice-comment") {
       if (!allowedAudioTypes.includes(baseFileType)) {
-        return res.status(400).json({ 
-          message: "Invalid audio type. Allowed: MP3, M4A, WAV, OGG, WebM" 
+        return res.status(400).json({
+          message: "Invalid audio type. Allowed: MP3, M4A, WAV, OGG, WebM, AAC, FLAC",
         });
       }
     }
@@ -55,7 +68,7 @@ router.get("/signed-url", async (req: any, res: any) => {
     const timestamp = Date.now();
     const userId = req.userId;
     const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
-    
+
     let folder = "voice";
     if (uploadType === "thumbnail") folder = "voice/thumbnails";
     else if (uploadType === "audio") folder = "voice/audio";
@@ -66,7 +79,7 @@ router.get("/signed-url", async (req: any, res: any) => {
     const key = `${folder}/${userId}/${timestamp}-${sanitizedFileName}`;
 
     const signedUrl = await getSignedURL(key, fileType);
-    
+
     // Use path-style URL format (same as posts)
     const bucketName = process.env.AWS_BUCKET_NAME?.trim();
     const region = process.env.AWS_CUSTOM_REGION?.trim();
