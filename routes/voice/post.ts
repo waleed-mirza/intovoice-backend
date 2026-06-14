@@ -116,6 +116,40 @@ router.post("/", async (req: any, res: any) => {
   }
 });
 
+// Lightweight metadata for link previews (no view-count increment)
+router.get("/:id/meta", async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+
+    const post = await req.prisma.voicePost.findUnique({
+      where: { id },
+      select: {
+        title: true,
+        description: true,
+        thumbnailURL: true,
+        station: { select: { name: true } },
+      },
+    });
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    res.status(200).json({
+      result: {
+        title: post.title,
+        description: post.description,
+        thumbnailURL: post.thumbnailURL,
+        stationName: post.station.name,
+      },
+      message: "Post metadata found",
+    });
+  } catch (error: any) {
+    console.log(error.message);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get post by ID
 router.get("/:id", async (req: any, res: any) => {
   try {

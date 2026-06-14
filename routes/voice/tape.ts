@@ -280,6 +280,40 @@ router.get("/:id/comments", async (req: any, res: any) => {
   }
 });
 
+// Lightweight metadata for link previews
+router.get("/:id/meta", async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+
+    const tape = await req.prisma.tape.findUnique({
+      where: { id },
+      select: {
+        caption: true,
+        thumbnailURL: true,
+        station: { select: { name: true } },
+        user: { select: { name: true } },
+      },
+    });
+
+    if (!tape) {
+      return res.status(404).json({ message: "Tape not found" });
+    }
+
+    res.status(200).json({
+      result: {
+        caption: tape.caption,
+        thumbnailURL: tape.thumbnailURL,
+        stationName: tape.station?.name ?? null,
+        userName: tape.user.name,
+      },
+      message: "Tape metadata found",
+    });
+  } catch (error: any) {
+    console.log(error.message);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get single tape
 router.get("/:id", async (req: any, res: any) => {
   try {

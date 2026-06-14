@@ -54,8 +54,9 @@ router.use("/station", verifyToken, stationRouter);
 
 // Post routes - some public, some protected
 router.get("/post/station/:stationId", postRouter);
-router.get("/post/:id", optionalAuth, postRouter);
+router.get("/post/:id/meta", postRouter);
 router.get("/post/:id/related", postRouter);
+router.get("/post/:id", optionalAuth, postRouter);
 
 // Protected post routes
 router.use("/post", verifyToken, postRouter);
