@@ -1,6 +1,6 @@
 import { Router } from "express";
 import verifyToken from "../../middlewares/verifyToken";
-import { deleteObject } from "../../middlewares/AWSConfig";
+import { deleteObject, normalizeAssetKey } from "../../middlewares/AWSConfig";
 import { deleteTapeS3Assets, deleteCommentTreeS3Assets } from "../../services/s3Cleanup";
 import { createNotification } from "../notification";
 import {
@@ -399,8 +399,8 @@ router.post("/", verifyToken, async (req: any, res: any) => {
         userId,
         stationId: stationId || null,
         caption: trimmedCaption,
-        thumbnailURL,
-        audioURL,
+        thumbnailURL: normalizeAssetKey(thumbnailURL)!,
+        audioURL: normalizeAssetKey(audioURL)!,
         duration: durationSeconds,
       },
       include: tapeInclude,
@@ -454,11 +454,14 @@ router.patch("/:id", verifyToken, async (req: any, res: any) => {
       }
       updateData.caption = trimmedCaption;
     }
-    if (thumbnailURL && tape.thumbnailURL !== thumbnailURL) {
-      try {
-        await deleteObject(tape.thumbnailURL);
-      } catch (e) {}
-      updateData.thumbnailURL = thumbnailURL;
+    if (thumbnailURL !== undefined) {
+      const normalizedThumbnail = normalizeAssetKey(thumbnailURL);
+      if (normalizedThumbnail && tape.thumbnailURL !== normalizedThumbnail) {
+        try {
+          await deleteObject(tape.thumbnailURL);
+        } catch (e) {}
+        updateData.thumbnailURL = normalizedThumbnail;
+      }
     }
 
     const updated = await req.prisma.tape.update({
@@ -645,7 +648,7 @@ router.post("/:id/comments", verifyToken, async (req: any, res: any) => {
         tapeId,
         authorId: userId,
         content: preparedContent.storedText,
-        audioFileURL: audioFileURL || null,
+        audioFileURL: audioFileURL ? normalizeAssetKey(audioFileURL) : null,
         parentId: threadRootId,
       },
       include: {

@@ -72,7 +72,7 @@ export async function deletePostS3Assets(
   ]);
 }
 
-/** Delete station avatar/banner and all post + comment audio under the station. */
+/** Delete station avatar/banner and all post, tape, and comment audio under the station. */
 export async function deleteStationS3Assets(
   prisma: PrismaClient,
   station: {
@@ -82,6 +82,11 @@ export async function deleteStationS3Assets(
       thumbnailURL?: string | null;
       audioURL?: string | null;
       comments: Array<{ audioFileURL?: string | null }>;
+    }>;
+    tapes?: Array<{
+      thumbnailURL?: string | null;
+      audioURL?: string | null;
+      comments?: Array<{ audioFileURL?: string | null }>;
     }>;
   }
 ): Promise<void> {
@@ -93,6 +98,13 @@ export async function deleteStationS3Assets(
   for (const post of station.posts) {
     urls.push(post.thumbnailURL, post.audioURL);
     for (const comment of post.comments) {
+      urls.push(comment.audioFileURL);
+    }
+  }
+
+  for (const tape of station.tapes ?? []) {
+    urls.push(tape.thumbnailURL, tape.audioURL);
+    for (const comment of tape.comments ?? []) {
       urls.push(comment.audioFileURL);
     }
   }

@@ -18,12 +18,6 @@ export const getSignedURL = async (fileName: any, fileType: any) => {
   return url;
 };
 
-/**
- * Resolves an S3 key from either a full S3 URL or a bare key.
- * Handles both storage patterns:
- *   - Full URL: "https://s3.region.amazonaws.com/bucket/voice/thumbnails/file.jpg" → "voice/thumbnails/file.jpg"
- *   - Bare key: "voice/comments/file.webm" → "voice/comments/file.webm"
- */
 export const resolveS3Key = (value: string): string => {
   if (!value) return value;
   try {
@@ -46,6 +40,12 @@ export const resolveS3Key = (value: string): string => {
     // Not a URL — already a bare key
     return value;
   }
+};
+
+/** Normalize media fields for DB storage — bare S3 key; legacy full URLs are stripped to keys on write. */
+export const normalizeAssetKey = (value: string | null | undefined): string | null => {
+  if (value == null || value === "") return null;
+  return resolveS3Key(value);
 };
 
 // delete object from bucket if it exists in bucket

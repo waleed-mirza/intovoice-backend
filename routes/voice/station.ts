@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { deleteObject } from "../../middlewares/AWSConfig";
+import { deleteObject, normalizeAssetKey } from "../../middlewares/AWSConfig";
 import { deleteStationS3Assets } from "../../services/s3Cleanup";
 import { createNotification } from "../notification";
 import { notifyVoiceSubscription } from "../../services/pushNotificationService";
@@ -39,8 +39,8 @@ router.post("/", async (req: any, res: any) => {
         name,
         handle: handle.toLowerCase(),
         description,
-        avatarURL,
-        bannerURL,
+        avatarURL: normalizeAssetKey(avatarURL),
+        bannerURL: normalizeAssetKey(bannerURL),
         categoryId,
       },
       include: {
@@ -248,20 +248,48 @@ router.put("/:id", async (req: any, res: any) => {
       }
     }
 
-    // Delete old files if being replaced
-    if (avatarURL && station.avatarURL && station.avatarURL !== avatarURL) {
-      try {
-        await deleteObject(station.avatarURL);
-      } catch (e) {
-        console.log("Error deleting old avatar:", e);
+    const normalizedAvatar =
+      avatarURL !== undefined ? normalizeAssetKey(avatarURL) : undefined;
+    const normalizedBanner =
+      bannerURL !== undefined ? normalizeAssetKey(bannerURL) : undefined;
+
+    if (normalizedAvatar !== undefined) {
+      if (normalizedAvatar === null && station.avatarURL) {
+        try {
+          await deleteObject(station.avatarURL);
+        } catch (e) {
+          console.log("Error deleting old avatar:", e);
+        }
+      } else if (
+        normalizedAvatar &&
+        station.avatarURL &&
+        station.avatarURL !== normalizedAvatar
+      ) {
+        try {
+          await deleteObject(station.avatarURL);
+        } catch (e) {
+          console.log("Error deleting old avatar:", e);
+        }
       }
     }
 
-    if (bannerURL && station.bannerURL && station.bannerURL !== bannerURL) {
-      try {
-        await deleteObject(station.bannerURL);
-      } catch (e) {
-        console.log("Error deleting old banner:", e);
+    if (normalizedBanner !== undefined) {
+      if (normalizedBanner === null && station.bannerURL) {
+        try {
+          await deleteObject(station.bannerURL);
+        } catch (e) {
+          console.log("Error deleting old banner:", e);
+        }
+      } else if (
+        normalizedBanner &&
+        station.bannerURL &&
+        station.bannerURL !== normalizedBanner
+      ) {
+        try {
+          await deleteObject(station.bannerURL);
+        } catch (e) {
+          console.log("Error deleting old banner:", e);
+        }
       }
     }
 
@@ -271,8 +299,8 @@ router.put("/:id", async (req: any, res: any) => {
         name,
         handle: handle ? handle.toLowerCase() : undefined,
         description,
-        avatarURL,
-        bannerURL,
+        ...(normalizedAvatar !== undefined ? { avatarURL: normalizedAvatar } : {}),
+        ...(normalizedBanner !== undefined ? { bannerURL: normalizedBanner } : {}),
         categoryId,
       },
       include: {
@@ -300,6 +328,14 @@ router.delete("/:id", async (req: any, res: any) => {
       where: { id },
       include: {
         posts: {
+          include: {
+            comments: {
+              where: { audioFileURL: { not: null } },
+              select: { audioFileURL: true },
+            },
+          },
+        },
+        tapes: {
           include: {
             comments: {
               where: { audioFileURL: { not: null } },

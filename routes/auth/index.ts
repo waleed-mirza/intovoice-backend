@@ -10,7 +10,7 @@ import {
   updateProfileValidation,
 } from "../../middlewares/formValidation";
 import { authLimiter } from "../../middlewares/rateLimiter";
-import { deleteObject } from "../../middlewares/AWSConfig";
+import { deleteObject, normalizeAssetKey } from "../../middlewares/AWSConfig";
 
 const router = express.Router();
 
@@ -151,19 +151,48 @@ router.patch(
         }
       }
 
-      if (profileImg && user.profileImg && user.profileImg !== profileImg) {
-        try {
-          await deleteObject(user.profileImg);
-        } catch (e) {
-          console.log("Error deleting old profile image:", e);
+      const normalizedProfile =
+        profileImg !== undefined ? normalizeAssetKey(profileImg) : undefined;
+      const normalizedBanner =
+        bannerImg !== undefined ? normalizeAssetKey(bannerImg) : undefined;
+
+      if (normalizedProfile !== undefined) {
+        if (normalizedProfile === null && user.profileImg) {
+          try {
+            await deleteObject(user.profileImg);
+          } catch (e) {
+            console.log("Error deleting old profile image:", e);
+          }
+        } else if (
+          normalizedProfile &&
+          user.profileImg &&
+          user.profileImg !== normalizedProfile
+        ) {
+          try {
+            await deleteObject(user.profileImg);
+          } catch (e) {
+            console.log("Error deleting old profile image:", e);
+          }
         }
       }
 
-      if (bannerImg && user.bannerImg && user.bannerImg !== bannerImg) {
-        try {
-          await deleteObject(user.bannerImg);
-        } catch (e) {
-          console.log("Error deleting old banner image:", e);
+      if (normalizedBanner !== undefined) {
+        if (normalizedBanner === null && user.bannerImg) {
+          try {
+            await deleteObject(user.bannerImg);
+          } catch (e) {
+            console.log("Error deleting old banner image:", e);
+          }
+        } else if (
+          normalizedBanner &&
+          user.bannerImg &&
+          user.bannerImg !== normalizedBanner
+        ) {
+          try {
+            await deleteObject(user.bannerImg);
+          } catch (e) {
+            console.log("Error deleting old banner image:", e);
+          }
         }
       }
 
@@ -174,8 +203,8 @@ router.patch(
           ...(username !== undefined
             ? { username: username === "" || username === null ? null : username.toLowerCase() }
             : {}),
-          ...(profileImg !== undefined ? { profileImg: profileImg || null } : {}),
-          ...(bannerImg !== undefined ? { bannerImg: bannerImg || null } : {}),
+          ...(normalizedProfile !== undefined ? { profileImg: normalizedProfile } : {}),
+          ...(normalizedBanner !== undefined ? { bannerImg: normalizedBanner } : {}),
         },
       });
 

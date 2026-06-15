@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { normalizeAssetKey } from "../../middlewares/AWSConfig";
 import { deleteCommentTreeS3Assets } from "../../services/s3Cleanup";
 import { createNotification } from "../notification";
 import { notifyVoiceComment } from "../../services/pushNotificationService";
@@ -184,7 +185,7 @@ router.post("/post/:postId", async (req: any, res: any) => {
         postId,
         authorId: userId,
         content: preparedContent.storedText,
-        audioFileURL: audioFileURL || null,
+        audioFileURL: audioFileURL ? normalizeAssetKey(audioFileURL) : null,
         parentId: threadRootId,
       },
       include: {

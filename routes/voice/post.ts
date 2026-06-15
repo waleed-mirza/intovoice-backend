@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { deleteObject } from "../../middlewares/AWSConfig";
+import { deleteObject, normalizeAssetKey } from "../../middlewares/AWSConfig";
 import { deletePostS3Assets } from "../../services/s3Cleanup";
 import { createNotification } from "../notification";
 import { notifyVoiceNewPost, notifyVoicePostLike } from "../../services/pushNotificationService";
@@ -95,8 +95,8 @@ router.post("/", async (req: any, res: any) => {
         stationId,
         title,
         description,
-        thumbnailURL,
-        audioURL,
+        thumbnailURL: normalizeAssetKey(thumbnailURL)!,
+        audioURL: normalizeAssetKey(audioURL)!,
         duration,
       },
       include: {
@@ -240,12 +240,20 @@ router.put("/:id", async (req: any, res: any) => {
       });
     }
 
-    // Delete old files if being replaced
-    if (thumbnailURL && post.thumbnailURL && post.thumbnailURL !== thumbnailURL) {
-      try { await deleteObject(post.thumbnailURL); } catch (e) {}
+    const normalizedThumbnail =
+      thumbnailURL !== undefined ? normalizeAssetKey(thumbnailURL) : undefined;
+    const normalizedAudio =
+      audioURL !== undefined ? normalizeAssetKey(audioURL) : undefined;
+
+    if (normalizedThumbnail && post.thumbnailURL && post.thumbnailURL !== normalizedThumbnail) {
+      try {
+        await deleteObject(post.thumbnailURL);
+      } catch (e) {}
     }
-    if (audioURL && post.audioURL && post.audioURL !== audioURL) {
-      try { await deleteObject(post.audioURL); } catch (e) {}
+    if (normalizedAudio && post.audioURL && post.audioURL !== normalizedAudio) {
+      try {
+        await deleteObject(post.audioURL);
+      } catch (e) {}
     }
 
     const updatedPost = await req.prisma.voicePost.update({
@@ -253,8 +261,8 @@ router.put("/:id", async (req: any, res: any) => {
       data: {
         title,
         description,
-        thumbnailURL,
-        audioURL,
+        ...(normalizedThumbnail !== undefined ? { thumbnailURL: normalizedThumbnail } : {}),
+        ...(normalizedAudio !== undefined ? { audioURL: normalizedAudio } : {}),
         duration,
       },
       include: {
