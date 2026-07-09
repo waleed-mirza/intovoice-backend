@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { createNotification } from "../notification";
 import { cleanupStaleLiveStreams } from "../../services/cleanupStaleLiveStreams";
+import { MAX_LIVE_DURATION_MS } from "../../services/liveLimits";
 import { generateLiveToken } from "../../services/zegoToken";
 
 const router = Router();
@@ -22,6 +23,21 @@ const liveInclude = {
       avatarURL: true,
     },
   },
+};
+
+const isPastMaxLiveDuration = (startedAt: Date) =>
+  Date.now() - new Date(startedAt).getTime() >= MAX_LIVE_DURATION_MS;
+
+const endStreamIfExpired = async (prisma: any, stream: any) => {
+  if (stream.status !== "live" || !isPastMaxLiveDuration(stream.startedAt)) {
+    return null;
+  }
+
+  return prisma.liveStream.update({
+    where: { id: stream.id },
+    data: { status: "ended", endedAt: new Date() },
+    include: liveInclude,
+  });
 };
 
 const formatLiveStream = (stream: any) => ({
@@ -154,6 +170,14 @@ router.get("/:id/token", async (req: any, res: any) => {
       return res.status(410).json({ message: "This broadcast has ended" });
     }
 
+    const expired = await endStreamIfExpired(req.prisma, stream);
+    if (expired) {
+      return res.status(410).json({
+        message: "This broadcast has ended",
+        result: formatLiveStream(expired),
+      });
+    }
+
     if (role === "host" && stream.userId !== req.userId) {
       return res.status(403).json({ message: "Only the host can request a host token" });
     }
@@ -192,6 +216,14 @@ router.get("/:id", async (req: any, res: any) => {
       return res.status(410).json({
         message: "This broadcast has ended",
         result: formatLiveStream(stream),
+      });
+    }
+
+    const expired = await endStreamIfExpired(req.prisma, stream);
+    if (expired) {
+      return res.status(410).json({
+        message: "This broadcast has ended",
+        result: formatLiveStream(expired),
       });
     }
 
@@ -347,6 +379,14 @@ router.post("/:id/heartbeat", async (req: any, res: any) => {
 
     if (stream.status !== "live") {
       return res.status(410).json({ message: "This broadcast has ended" });
+    }
+
+    const expired = await endStreamIfExpired(req.prisma, stream);
+    if (expired) {
+      return res.status(410).json({
+        message: "This broadcast has reached the 59-minute limit",
+        result: formatLiveStream(expired),
+      });
     }
 
     const updated = await req.prisma.liveStream.update({

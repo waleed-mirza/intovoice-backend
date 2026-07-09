@@ -3,6 +3,7 @@ import { deleteObject, normalizeAssetKey } from "../../middlewares/AWSConfig";
 import { deletePostS3Assets } from "../../services/s3Cleanup";
 import { createNotification } from "../notification";
 import { notifyVoiceNewPost, notifyVoicePostLike } from "../../services/pushNotificationService";
+import verifyToken from "../../middlewares/verifyToken";
 
 const router = Router();
 
@@ -60,7 +61,7 @@ async function notifySubscribersOfNewPost(
 }
 
 // Create a new voice post
-router.post("/", async (req: any, res: any) => {
+router.post("/", verifyToken, async (req: any, res: any) => {
   try {
     const { stationId, title, description, thumbnailURL, audioURL, duration } = req.body;
     const userId = req.userId;
@@ -215,7 +216,7 @@ router.get("/:id", async (req: any, res: any) => {
 });
 
 // Update post
-router.put("/:id", async (req: any, res: any) => {
+router.put("/:id", verifyToken, async (req: any, res: any) => {
   try {
     const { id } = req.params;
     const userId = req.userId;
@@ -280,7 +281,7 @@ router.put("/:id", async (req: any, res: any) => {
 });
 
 // Delete post
-router.delete("/:id", async (req: any, res: any) => {
+router.delete("/:id", verifyToken, async (req: any, res: any) => {
   try {
     const { id } = req.params;
     const userId = req.userId;
@@ -313,7 +314,7 @@ router.delete("/:id", async (req: any, res: any) => {
 });
 
 // Like/unlike post
-router.post("/:id/like", async (req: any, res: any) => {
+router.post("/:id/like", verifyToken, async (req: any, res: any) => {
   try {
     const { id } = req.params;
     const userId = req.userId;

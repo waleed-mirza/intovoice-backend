@@ -3,11 +3,12 @@ import { deleteObject, normalizeAssetKey } from "../../middlewares/AWSConfig";
 import { deleteStationS3Assets } from "../../services/s3Cleanup";
 import { createNotification } from "../notification";
 import { notifyVoiceSubscription } from "../../services/pushNotificationService";
+import verifyToken from "../../middlewares/verifyToken";
 
 const router = Router();
 
 // Create a new station
-router.post("/", async (req: any, res: any) => {
+router.post("/", verifyToken, async (req: any, res: any) => {
   try {
     const { name, handle, description, avatarURL, bannerURL, categoryId } = req.body;
     const userId = req.userId;
@@ -59,7 +60,7 @@ router.post("/", async (req: any, res: any) => {
 });
 
 // Get stations the current user is subscribed to (for sidebar)
-router.get("/subscribed", async (req: any, res: any) => {
+router.get("/subscribed", verifyToken, async (req: any, res: any) => {
   try {
     const userId = req.userId;
 
@@ -87,7 +88,7 @@ router.get("/subscribed", async (req: any, res: any) => {
 });
 
 // Get all stations for current user
-router.get("/my-stations", async (req: any, res: any) => {
+router.get("/my-stations", verifyToken, async (req: any, res: any) => {
   try {
     const userId = req.userId;
 
@@ -214,7 +215,7 @@ router.get("/handle/:handle", async (req: any, res: any) => {
 });
 
 // Update station
-router.put("/:id", async (req: any, res: any) => {
+router.put("/:id", verifyToken, async (req: any, res: any) => {
   try {
     const { id } = req.params;
     const userId = req.userId;
@@ -319,7 +320,7 @@ router.put("/:id", async (req: any, res: any) => {
 });
 
 // Delete station
-router.delete("/:id", async (req: any, res: any) => {
+router.delete("/:id", verifyToken, async (req: any, res: any) => {
   try {
     const { id } = req.params;
     const userId = req.userId;
@@ -368,7 +369,7 @@ router.delete("/:id", async (req: any, res: any) => {
 });
 
 // Subscribe to station
-router.post("/:id/subscribe", async (req: any, res: any) => {
+router.post("/:id/subscribe", verifyToken, async (req: any, res: any) => {
   try {
     const { id } = req.params;
     const userId = req.userId;
@@ -514,7 +515,7 @@ router.get("/check-handle/:handle", async (req: any, res: any) => {
 });
 
 // Get station analytics (owner only)
-router.get("/:id/analytics", async (req: any, res: any) => {
+router.get("/:id/analytics", verifyToken, async (req: any, res: any) => {
   try {
     const { id } = req.params;
     const userId = req.userId;

@@ -34,44 +34,22 @@ router.use("/upload", verifyToken, uploadRouter);
 // Live stream routes — all require auth (/active and /my-active before /:id in live.ts)
 router.use("/live", verifyToken, liveRouter);
 
-// Feed routes — subscriptions requires auth; others optional
-router.get("/feed/subscriptions", verifyToken, feedRouter);
+// Feed — subscriptions requires auth inside feed.ts; other feed routes are public
 router.use("/feed", optionalAuth, feedRouter);
 router.use("/category", optionalAuth, categoryRouter);
 
-// Station routes - some public, some protected
-router.get("/station/check-handle/:handle", stationRouter);
-router.get("/station/handle/:handle", optionalAuth, stationRouter);
-
-// Subscribed stations - needs auth, must be before /:id to avoid conflict
-router.get("/station/subscribed", verifyToken, stationRouter);
-router.get("/station/my-stations", verifyToken, stationRouter);
-
-router.get("/station/:id", optionalAuth, stationRouter);
-
-// Protected station routes
-router.use("/station", verifyToken, stationRouter);
-
-// Post routes - some public, some protected
-router.get("/post/station/:stationId", postRouter);
-router.get("/post/:id/meta", postRouter);
-router.get("/post/:id/related", postRouter);
-router.get("/post/:id", optionalAuth, postRouter);
-
-// Protected post routes
-router.use("/post", verifyToken, postRouter);
-
-// Comment routes - GET is public with optional auth, others protected
-router.get("/comment/post/:postId", optionalAuth, commentRouter);
-router.get("/comment/:commentId/replies", optionalAuth, commentRouter);
-
-// Protected comment routes
-router.use("/comment", verifyToken, commentRouter);
+// Station / post / comment — mount with optionalAuth so public GETs work logged out.
+// Write routes (create, edit, delete, like, subscribe) use verifyToken inside each file.
+// Do NOT use router.get(..., subRouter): remaining path won't match nested routes and
+// requests fall through to a verifyToken mount (401 for anonymous users).
+router.use("/station", optionalAuth, stationRouter);
+router.use("/post", optionalAuth, postRouter);
+router.use("/comment", optionalAuth, commentRouter);
 
 // Tape routes — optional auth on reads; writes use verifyToken inside tape.ts
 router.use("/tape", optionalAuth, tapeRouter);
 
-// Public user profiles — must be before /station mounts
+// Public user profiles
 router.use("/user", optionalAuth, userRouter);
 
 export default router;

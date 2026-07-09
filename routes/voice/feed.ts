@@ -1,4 +1,5 @@
 import { Router } from "express";
+import verifyToken from "../../middlewares/verifyToken";
 
 const router = Router();
 
@@ -88,7 +89,7 @@ router.get("/", async (req: any, res: any) => {
 });
 
 // Get subscribed stations feed
-router.get("/subscriptions", async (req: any, res: any) => {
+router.get("/subscriptions", verifyToken, async (req: any, res: any) => {
   try {
     const userId = req.userId;
     const { page = 1, limit = 20 } = req.query;

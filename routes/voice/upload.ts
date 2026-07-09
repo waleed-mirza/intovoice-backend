@@ -39,6 +39,7 @@ router.get("/signed-url", async (req: any, res: any) => {
     const allowedThumbnailTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
     const allowedAudioTypes = [
       "audio/mpeg",
+      "audio/mp3",
       "audio/mp4",
       "audio/wav",
       "audio/x-wav",
@@ -50,6 +51,7 @@ router.get("/signed-url", async (req: any, res: any) => {
       "audio/aac",
       "audio/flac",
       "audio/x-flac",
+      "audio/opus",
     ];
 
     if (

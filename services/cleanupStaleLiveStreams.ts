@@ -1,13 +1,11 @@
 import type { PrismaClient } from "@prisma/client";
+import { MAX_LIVE_DURATION_MS } from "./liveLimits";
 
 /** No heartbeat for this long while still "live" → treat as abandoned. */
 const STALE_HEARTBEAT_MS = 90 * 1000;
 
 /** Grace period after start before requiring a host heartbeat. */
 const GRACE_WITHOUT_HEARTBEAT_MS = 2 * 60 * 1000;
-
-/** Hard cap — no broadcast stays live longer than this. */
-const MAX_LIVE_DURATION_MS = 12 * 60 * 60 * 1000;
 
 /**
  * Marks abandoned or expired broadcasts as ended.

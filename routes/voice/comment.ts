@@ -7,6 +7,7 @@ import {
   MAX_COMMENT_TEXT_LENGTH,
   prepareCommentText,
 } from "../../services/commentText";
+import verifyToken from "../../middlewares/verifyToken";
 
 const router = Router();
 
@@ -130,7 +131,7 @@ router.get("/:commentId/replies", async (req: any, res: any) => {
 });
 
 // Create a comment (supports optional audioFileURL for voice comments)
-router.post("/post/:postId", async (req: any, res: any) => {
+router.post("/post/:postId", verifyToken, async (req: any, res: any) => {
   try {
     const { postId } = req.params;
     const { content, parentId, audioFileURL } = req.body;
@@ -236,7 +237,7 @@ router.post("/post/:postId", async (req: any, res: any) => {
 });
 
 // Update a comment (text only; audio cannot be edited)
-router.put("/:id", async (req: any, res: any) => {
+router.put("/:id", verifyToken, async (req: any, res: any) => {
   try {
     const { id } = req.params;
     const userId = req.userId;
@@ -289,7 +290,7 @@ router.put("/:id", async (req: any, res: any) => {
 
 // Delete a comment — author or station owner can delete
 // Also deletes the S3 audio asset if present
-router.delete("/:id", async (req: any, res: any) => {
+router.delete("/:id", verifyToken, async (req: any, res: any) => {
   try {
     const { id } = req.params;
     const userId = req.userId;
@@ -333,7 +334,7 @@ router.delete("/:id", async (req: any, res: any) => {
 });
 
 // Like/unlike a comment
-router.post("/:id/like", async (req: any, res: any) => {
+router.post("/:id/like", verifyToken, async (req: any, res: any) => {
   try {
     const { id } = req.params;
     const userId = req.userId;
